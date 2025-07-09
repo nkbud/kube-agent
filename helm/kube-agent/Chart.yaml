@@ -1,0 +1,17 @@
+apiVersion: v2
+name: kube-agent
+description: A Helm chart for kube-agent - AI-powered Kubernetes cluster investigation agent
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - ai
+  - monitoring
+  - alerting
+home: https://github.com/nkbud/kube-agent
+sources:
+  - https://github.com/nkbud/kube-agent
+maintainers:
+  - name: kube-agent
+    email: kube-agent@example.com
