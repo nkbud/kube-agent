@@ -2,6 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
+
 from kube_agent.main import app
 
 
@@ -45,7 +46,7 @@ def test_alerts_endpoint(client: TestClient) -> None:
     # Sample Alertmanager webhook payload
     payload = {
         "version": "4",
-        "groupKey": "{}:{alertname=\"TestAlert\"}",
+        "groupKey": '{}:{alertname="TestAlert"}',
         "truncatedAlerts": 0,
         "status": "firing",
         "receiver": "kube-agent",
@@ -59,11 +60,11 @@ def test_alerts_endpoint(client: TestClient) -> None:
                 "labels": {"alertname": "TestAlert", "severity": "warning"},
                 "annotations": {"summary": "Test alert"},
                 "startsAt": "2024-01-01T00:00:00Z",
-                "fingerprint": "test123"
+                "fingerprint": "test123",
             }
-        ]
+        ],
     }
-    
+
     response = client.post("/alerts", json=payload)
     assert response.status_code == 200
     data = response.json()

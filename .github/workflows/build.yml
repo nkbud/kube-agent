@@ -1,0 +1,108 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build'
+        required: true
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      bump-type: ${{ steps.version.outputs.bump-type }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Calculate version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "version=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          echo "bump-type=manual" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "bump-type=tag" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          # Auto-bump patch version if on main branch
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -ra PARTS <<< "$VERSION"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump-type=auto-patch" >> $GITHUB_OUTPUT
+        else
+          echo "version=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "bump-type=dev" >> $GITHUB_OUTPUT
+        fi
+
+  build:
+    needs: version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}},value=v${{ needs.version.outputs.version }}
+          type=semver,pattern={{major}}.{{minor}},value=v${{ needs.version.outputs.version }}
+          type=semver,pattern={{major}},value=v${{ needs.version.outputs.version }}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  tag:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    if: needs.version.outputs.bump-type == 'auto-patch'
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create and push tag
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git tag v${{ needs.version.outputs.version }}
+        git push origin v${{ needs.version.outputs.version }}
