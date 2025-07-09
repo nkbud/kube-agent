@@ -1,8 +1,9 @@
 """Main FastAPI application for kube-agent."""
 
 import time
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Awaitable, Callable
+from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request, Response

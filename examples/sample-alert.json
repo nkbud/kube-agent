@@ -1,0 +1,43 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"PodCrashLooping\"}",
+  "truncatedAlerts": 0,
+  "status": "firing",
+  "receiver": "kube-agent",
+  "groupLabels": {
+    "alertname": "PodCrashLooping"
+  },
+  "commonLabels": {
+    "alertname": "PodCrashLooping",
+    "severity": "warning",
+    "namespace": "test-workloads",
+    "pod": "failing-app-64f8b7c4d5-xyz"
+  },
+  "commonAnnotations": {
+    "summary": "Pod test-workloads/failing-app-64f8b7c4d5-xyz is crash looping",
+    "description": "Pod has been restarting frequently (5 restarts in the last 5 minutes)"
+  },
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "PodCrashLooping",
+        "severity": "warning",
+        "namespace": "test-workloads",
+        "pod": "failing-app-64f8b7c4d5-xyz",
+        "container": "failing-container",
+        "job": "kubernetes-pods",
+        "instance": "10.244.1.5:8080"
+      },
+      "annotations": {
+        "summary": "Pod test-workloads/failing-app-64f8b7c4d5-xyz is crash looping",
+        "description": "Pod has been restarting frequently due to container exits"
+      },
+      "startsAt": "2024-01-01T10:30:00.000Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph?g0.expr=rate%28kube_pod_container_status_restarts_total%5B5m%5D%29+%3E+0&g0.tab=1",
+      "fingerprint": "c1a2b3d4e5f6"
+    }
+  ]
+}
